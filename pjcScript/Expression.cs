@@ -21,12 +21,6 @@ namespace pjcScript
 			{
 				var token = tokens[i];
 
-				//공백으로만 구성된 것 무시
-				if (token.All(c => " \n\r".Contains(c)))
-				{
-					continue;
-				}
-
 				switch (token)
 				{
 					case "+":

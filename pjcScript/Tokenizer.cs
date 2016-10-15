@@ -13,10 +13,11 @@ namespace pjcScript
 		{
 			var tokens = new List<string>();
 
-			//공백, 엔터, ; 등으로 분리
+			//공백, 엔터등 제거
+			source.Replace(" \r\n", string.Empty);
 
 			//기본 예약어
-			var special = "()+-*/%=,? \r\n;";
+			var special = "()+-*/%=,?;";
 
 			int prevIdx = 0;
 			for (int i = 0; i < source.Length; i++)
