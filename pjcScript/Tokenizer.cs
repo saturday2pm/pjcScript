@@ -24,7 +24,10 @@ namespace pjcScript
 			{
 				if (special.Contains(source[i]))
 				{
-					tokens.Add(source.Substring(prevIdx, i - prevIdx));
+					if (i > prevIdx)
+					{
+						tokens.Add(source.Substring(prevIdx, i - prevIdx));
+					}
 					tokens.Add(source.Substring(i, 1));
 					prevIdx = i + 1;
 				}

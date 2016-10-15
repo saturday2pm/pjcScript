@@ -47,14 +47,14 @@ namespace pjcScript
 								parenCount--;
 							}
 
-							parenToken.Add(tokens[j]);
-
 							if (parenCount == 0)
 							{
 								i = j;
 								expressions.Add(Create(parenToken));
 								break;
 							}
+
+							parenToken.Add(tokens[j]);
 						}
 						break;
 					case ")":
@@ -123,7 +123,7 @@ namespace pjcScript
 			{
 				var op = e as BinaryOperatorExpression;
 
-				if (op != null)
+				if (op != null && !op.HasOperand())
 				{
 					while (stack.Count != 0 &&
 						stack.Peek().Priority > op.Priority)
@@ -161,7 +161,8 @@ namespace pjcScript
 				var e = postexp[i];
 				var op = e as BinaryOperatorExpression;
 
-				if (op != null)
+				//operand가 이미 설정되어 있는 경우(괄호) 제외하기
+				if (op != null && !op.HasOperand())
 				{
 					//연산자면 operand 설정후 다시 푸쉬
 					var right = expressionStack.Pop();
@@ -305,6 +306,11 @@ namespace pjcScript
 					op = Nullable();
 					break;
 			}
+		}
+
+		public bool HasOperand()
+		{
+			return lhs != null && rhs != null;
 		}
 
 		public void SetOperand(Expression left, Expression right)
