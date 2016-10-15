@@ -29,3 +29,9 @@ int res = (int)interpreter.Exec("c = a + b; abs(c);");
 
 Console.WriteLine(res); // 2
 ```
+
+## TO DO
+
+- 에러 처리 : 코드 잘못 짰을 때 에러 처리 하나도 안 돼 있음
+- 구조 깔끔하게 : Expression 만드는 부분 지저분한 것 수정하기
+- 최적화 : Interpret하는 속도 너무 느림
