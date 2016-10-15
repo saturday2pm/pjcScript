@@ -76,12 +76,31 @@ namespace pjcScript
 							var paramList = new List<List<string>>();
 
 							int now = i + 2;
+							int pc = 1;
 
-							while (now < tokens.Count)
+							while (now < tokens.Count && pc > 0)
 							{
 								var param = new List<string>();
-								while (now < tokens.Count && tokens[now] != ",")
+								while (now < tokens.Count)
 								{
+									if (tokens[now] == "(")
+									{
+										pc++;
+									}
+
+									if (tokens[now] == ")")
+									{
+										if (pc == 1)
+											break;
+
+										pc--;	
+									}
+
+									if (tokens[now] == "," && pc == 1)
+									{
+										break;
+									}
+
 									param.Add(tokens[now]);
 									now++;
 								}
