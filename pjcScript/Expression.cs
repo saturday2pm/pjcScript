@@ -272,11 +272,15 @@ namespace pjcScript
 				case "*":
 				case "/":
 				case "%":
-					priority = 2;
+					priority = 3;
 					isLeft = true;
 					break;
 				case "+":
 				case "-":
+					priority = 2;
+					isLeft = true;
+					break;
+				case "?":
 					priority = 1;
 					isLeft = true;
 					break;
