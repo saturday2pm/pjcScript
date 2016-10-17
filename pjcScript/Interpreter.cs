@@ -41,15 +41,24 @@ namespace pjcScript
 
 			return Exec(exp);
 		}
-
-		object Exec(List<Expression> expressions)
+		
+		public Expression Build(string source)
 		{
-			table.Clear();
+		    var tokens = new Tokenizer().tokenize(source);
 
-			foreach (var e in external)
-			{
-				table.Add(e.Key, e.Value);
-			}
+		    return Expression.Create(tokens);
+		}
+
+		public object Exec(Expression exp)
+		{
+		    table = new Dictionary<string, object>(external);
+
+		    return exp.Exec(table);
+		}
+
+       		object Exec(List<Expression> expressions)
+		{
+            		table = new Dictionary<string, object>(external);
 
 			object res = null;
 
