@@ -19,7 +19,7 @@ namespace pjcScript
 		//값 하나 바인딩 추가. 기존 값 유지됨.
 		public void AddBind(string name, object val)
 		{
-			external.Add(name, val);
+			external[name] = val;
 		}
 
 		public object Exec(string source)
