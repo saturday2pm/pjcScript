@@ -12,9 +12,9 @@ namespace pjcScript.Instant
         {
         }
 
-        public override object Visit(Dictionary<string, object> table)
+        public override object Visit(ExecContext ctx, Dictionary<string, object> table)
         {
-            var p = param.Select(e => e.Visit(table)).ToArray();
+            var p = param.Select(e => e.Visit(ctx, table)).ToArray();
 
             return table[func].GetType().GetMethod("Invoke").Invoke(table[func], p);
         }

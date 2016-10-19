@@ -8,7 +8,7 @@ namespace pjcScript.Instant
 {
     class BinaryOperatorExpressionImpl : BinaryOperatorExpression
     {
-        public delegate object Op(ExpressionNode lhs, ExpressionNode rhs, Dictionary<string, object> table);
+        public delegate object Op(ExpressionNode lhs, ExpressionNode rhs, ExecContext ctx, Dictionary<string, object> table);
         Op op = null;
 
         public BinaryOperatorExpressionImpl(string s)
@@ -18,12 +18,12 @@ namespace pjcScript.Instant
 
         Op Nullable()
         {
-            return (lhs, rhs, table) =>
+            return (lhs, rhs, ctx, table) =>
             {
-                var l = lhs.Visit(table);
+                var l = lhs.Visit(ctx, table);
 
                 if (l == null)
-                    return rhs.Visit(table);
+                    return rhs.Visit(ctx, table);
                 else
                     return l;
             };
@@ -31,10 +31,10 @@ namespace pjcScript.Instant
 
         Op Assign()
         {
-            return (lhs, rhs, table) =>
+            return (lhs, rhs, ctx, table) =>
             {
                 var obj = lhs as ReferenceExpressionImpl;
-                var res = rhs.Visit(table);
+                var res = rhs.Visit(ctx, table);
 
                 table[obj.Name] = res;
 
@@ -44,10 +44,10 @@ namespace pjcScript.Instant
 
         Op Binary(string name)
         {
-            return (lhs, rhs, table) =>
+            return (lhs, rhs, ctx, table) =>
             {
-                var l = lhs.Visit(table);
-                var r = rhs.Visit(table);
+                var l = lhs.Visit(ctx, table);
+                var r = rhs.Visit(ctx, table);
 
                 if (l is string)
                 {
@@ -96,7 +96,7 @@ namespace pjcScript.Instant
             };
         }
 
-        public override object Visit(Dictionary<string, object> table)
+        public override object Visit(ExecContext ctx, Dictionary<string, object> table)
         {
             switch (s)
             {

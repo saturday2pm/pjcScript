@@ -10,7 +10,7 @@ namespace pjcScript
 {
     public interface ExpressionNode
     {
-        object Visit(Dictionary<string, object> table);
+        object Visit(ExecContext ctx, Dictionary<string, object> table);
     }
     public class ExpressionBuilder
     {
@@ -201,7 +201,7 @@ namespace pjcScript
             var = v;
         }
 
-        public virtual object Visit(Dictionary<string, object> table)
+        public virtual object Visit(ExecContext ctx, Dictionary<string, object> table)
         {
             throw new NotImplementedException();
         }
@@ -220,7 +220,7 @@ namespace pjcScript
             return node;
         }
 
-        public virtual object Visit(Dictionary<string, object> table)
+        public virtual object Visit(ExecContext ctx, Dictionary<string, object> table)
         {
             throw new NotImplementedException();
         }
@@ -289,7 +289,7 @@ namespace pjcScript
             rhs = right;
         }
 
-        public virtual object Visit(Dictionary<string, object> table)
+        public virtual object Visit(ExecContext ctx, Dictionary<string, object> table)
         {
             throw new NotImplementedException();
         }
@@ -313,7 +313,7 @@ namespace pjcScript
         protected List<ExpressionNode> param;
         protected string func;
 
-        public virtual object Visit(Dictionary<string, object> table)
+        public virtual object Visit(ExecContext ctx, Dictionary<string, object> table)
         {
             throw new NotImplementedException();
         }

@@ -46,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ExecContext.cs" />
     <Compile Include="Expression.cs" />
     <Compile Include="Instant\AssignmentExpressionImpl.cs" />
     <Compile Include="Instant\BinaryOperatorExpressionImpl.cs" />

@@ -53,7 +53,7 @@ namespace pjcScript
 		{
 		    table = new Dictionary<string, object>(external);
 
-            return exp.Visit(external);
+            return exp.Visit(ctx, external);
         }
 
         object Exec(List<ExpressionNode> expressions)
@@ -64,12 +64,13 @@ namespace pjcScript
 
             foreach (var e in expressions)
             {
-                res = e.Visit(external);
+                res = e.Visit(ctx, external);
             }
 
             return res;
         }
 
+        ExecContext ctx = new ExecContext();
         Dictionary<string, object> table = new Dictionary<string, object>();
         Dictionary<string, object> external = new Dictionary<string, object>();
 	}
