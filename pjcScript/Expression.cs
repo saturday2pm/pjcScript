@@ -32,7 +32,7 @@ namespace pjcScript
                     case "%":
                     case "=":
                     case "?":
-                        expressions.Add(new BinaryOperatorExpression(token));
+                        expressions.Add(BinaryOperatorExpression.Create(token));
                         break;
                     case "(":
                         //괄호 닫는 부분까지 하나의 Expression으로 만든다.
@@ -64,7 +64,7 @@ namespace pjcScript
                     default:
                         if (i == tokens.Count - 1 || tokens[i + 1] != "(")
                         {
-                            expressions.Add(new ReferenceExpression(token)); //변수 상수
+                            expressions.Add(ReferenceExpression.Create(token)); //변수 상수
                         }
                         else
                         {
@@ -109,7 +109,7 @@ namespace pjcScript
 
                             }
 
-                            expressions.Add(new FunctionExpression(token, paramList));
+                            expressions.Add(FunctionExpression.Create(token, paramList));
                             i = now;
                         }
                         break;
@@ -185,66 +185,45 @@ namespace pjcScript
 
     class ReferenceExpression : ExpressionNode
     {
-
         public string Name
         {
             get { return var; }
         }
 
-        public ReferenceExpression(string v)
+        public static ReferenceExpression Create(string v)
+        {
+            var node = new Instant.ReferenceExpressionImpl(v);
+            return node;
+        }
+
+        protected ReferenceExpression(string v)
         {
             var = v;
         }
 
-        public object Visit(Dictionary<string, object> table)
+        public virtual object Visit(Dictionary<string, object> table)
         {
-            int intRes;
-            float floatRes;
-
-            if (var.StartsWith("\"") && var.EndsWith("\""))
-                return var.Substring(1, var.Length - 2);
-
-            if (int.TryParse(var, out intRes))
-            {
-                return intRes;
-            }
-
-            if (float.TryParse(var, out floatRes))
-            {
-                return floatRes;
-            }
-
-            if (table.ContainsKey(var))
-            {
-                return table[var];
-            }
-
-            return null;
+            throw new NotImplementedException();
         }
 
-        string var = null;
+        protected string var = null;
     }
 
     class AssignmentExpression : ExpressionNode
     {
-        public object Visit(Dictionary<string, object> table)
+        protected string var = null;
+        protected ExpressionNode exp = null;
+
+        public static AssignmentExpression Create()
         {
-            var res = exp.Visit(table);
-
-            if (table.ContainsKey(var))
-            {
-                table[var] = res;
-            }
-            else
-            {
-                table.Add(var, res);
-            }
-
-            return res;
+            var node = new Instant.AssignmentExpressionImpl();
+            return node;
         }
 
-        string var = null;
-        ExpressionNode exp = null;
+        public virtual object Visit(Dictionary<string, object> table)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     class BinaryOperatorExpression : ExpressionNode
@@ -259,15 +238,22 @@ namespace pjcScript
             get { return isLeft; }
         }
 
-        public delegate object Op(ExpressionNode lhs, ExpressionNode rhs, Dictionary<string, object> table);
-        Op op = null;
-        ExpressionNode lhs = null;
-        ExpressionNode rhs = null;
-        int priority = 0;
-        bool isLeft = true;
+        protected ExpressionNode lhs = null;
+        protected ExpressionNode rhs = null;
+        protected int priority = 0;
+        protected bool isLeft = true;
+        protected string s;
 
-        public BinaryOperatorExpression(string s)
+        public static BinaryOperatorExpression Create(string s)
         {
+            var node = new Instant.BinaryOperatorExpressionImpl(s);
+            return node;
+        }
+
+        protected BinaryOperatorExpression(string s)
+        {
+            this.s = s;
+
             switch (s)
             {
                 case "=":
@@ -290,31 +276,6 @@ namespace pjcScript
                     isLeft = true;
                     break;
             }
-
-            switch (s)
-            {
-                case "=":
-                    op = Assign();
-                    break;
-                case "*":
-                    op = Binary("op_Multiply");
-                    break;
-                case "/":
-                    op = Binary("op_Division");
-                    break;
-                case "%":
-                    op = Binary("op_Modulus");
-                    break;
-                case "+":
-                    op = Binary("op_Addition");
-                    break;
-                case "-":
-                    op = Binary("op_Subtraction");
-                    break;
-                case "?":
-                    op = Nullable();
-                    break;
-            }
         }
 
         public bool HasOperand()
@@ -328,109 +289,33 @@ namespace pjcScript
             rhs = right;
         }
 
-        public object Visit(Dictionary<string, object> table)
+        public virtual object Visit(Dictionary<string, object> table)
         {
-            return op(lhs, rhs, table);
-        }
-
-        Op Nullable()
-        {
-            return (lhs, rhs, table) =>
-            {
-                var l = lhs.Visit(table);
-
-                if (l == null)
-                    return rhs.Visit(table);
-                else
-                    return l;
-            };
-        }
-
-        Op Assign()
-        {
-            return (lhs, rhs, table) =>
-            {
-                var obj = lhs as ReferenceExpression;
-                var res = rhs.Visit(table);
-
-                table[obj.Name] = res;
-
-                return res;
-            };
-        }
-
-        Op Binary(string name)
-        {
-            return (lhs, rhs, table) =>
-            {
-                var l = lhs.Visit(table);
-                var r = rhs.Visit(table);
-
-                if (l is string)
-                {
-                    switch (name)
-                    {
-                        case "op_Addition":
-                            return (string)l + r.ToString();
-                    }
-                }
-
-                if (l is int)
-                {
-                    switch (name)
-                    {
-                        case "op_Multiply":
-                            return (int)l * Convert.ToInt32(r);
-                        case "op_Division":
-                            return (int)l / Convert.ToInt32(r);
-                        case "op_Modulus":
-                            return (int)l % Convert.ToInt32(r);
-                        case "op_Addition":
-                            return (int)l + Convert.ToInt32(r);
-                        case "op_Subtraction":
-                            return (int)l - Convert.ToInt32(r);
-                    }
-                }
-
-                if (l is float)
-                {
-                    switch (name)
-                    {
-                        case "op_Multiply":
-                            return (float)l * Convert.ToSingle(r);
-                        case "op_Division":
-                            return (float)l / Convert.ToSingle(r);
-                        case "op_Modulus":
-                            return (float)l % Convert.ToSingle(r);
-                        case "op_Addition":
-                            return (float)l + Convert.ToSingle(r);
-                        case "op_Subtraction":
-                            return (float)l - Convert.ToSingle(r);
-                    }
-                }
-
-                return l.GetType().GetMethod(name, BindingFlags.Static | BindingFlags.Public).Invoke(null, new object[] { l, r });
-            };
+            throw new NotImplementedException();
         }
     }
 
     class FunctionExpression : ExpressionNode
     {
-        public FunctionExpression(string name, List<List<string>> paramList)
+        public static FunctionExpression Create(string name, List<List<string>> paramList)
+        {
+            var node = new Instant.FunctionExpressionImpl(name, paramList);
+            return node;
+        }
+
+        protected FunctionExpression(string name, List<List<string>> paramList)
         {
             func = name;
 
             param = paramList.Select(p => ExpressionBuilder.Create(p)).ToList();
         }
 
-        List<ExpressionNode> param;
-        string func;
+        protected List<ExpressionNode> param;
+        protected string func;
 
-        public object Visit(Dictionary<string, object> table)
+        public virtual object Visit(Dictionary<string, object> table)
         {
-            var p = param.Select(e => e.Visit(table)).ToArray();
-
-            return table[func].GetType().GetMethod("Invoke").Invoke(table[func], p);
+            throw new NotImplementedException();
         }
     }
 }
