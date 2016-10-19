@@ -336,10 +336,9 @@ namespace pjcScript
 			return (lhs, rhs, table) =>
 			{
 				var l = lhs.Exec(table);
-				var r = rhs.Exec(table);
 
 				if (l == null)
-					return r;
+					return rhs.Exec(table);
 				else
 					return l;
 			};
@@ -352,15 +351,8 @@ namespace pjcScript
 				var obj = lhs as ReferenceExpression;
 				var res = rhs.Exec(table);
 
-				if (table.ContainsKey(obj.Name))
-				{
-					table[obj.Name] = res;
-				}
-				else
-				{
-					table.Add(obj.Name, res);
-				}
-
+                		table[obj.Name] = res;
+                
 				return res;
 			};
 		}
