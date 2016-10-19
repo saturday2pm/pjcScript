@@ -26,7 +26,7 @@ namespace pjcScript
 		{
 			var tokens = new Tokenizer().tokenize(source);
 			int prev = 0;
-			var exp = new List<Expression>();
+			var exp = new List<ExpressionNode>();
 
 			while (prev < tokens.Count)
 			{
@@ -35,28 +35,28 @@ namespace pjcScript
 				if (idx == -1)
 					break;
 
-				exp.Add(Expression.Create(tokens.GetRange(prev, idx - prev)));
+				exp.Add(ExpressionBuilder.Create(tokens.GetRange(prev, idx - prev)));
 				prev = idx + 1;
 			}
 
 			return Exec(exp);
 		}
 		
-		public Expression Build(string source)
+		public ExpressionNode Build(string source)
 		{
 		    var tokens = new Tokenizer().tokenize(source);
 
-		    return Expression.Create(tokens);
+		    return ExpressionBuilder.Create(tokens);
 		}
 
-		public object Exec(Expression exp)
+		public object Exec(ExpressionNode exp)
 		{
 		    table = new Dictionary<string, object>(external);
 
-            return exp.Exec(external);
+            return exp.Visit(external);
         }
 
-        object Exec(List<Expression> expressions)
+        object Exec(List<ExpressionNode> expressions)
         {
             table = new Dictionary<string, object>(external);
 
@@ -64,7 +64,7 @@ namespace pjcScript
 
             foreach (var e in expressions)
             {
-                res = e.Exec(external);
+                res = e.Visit(external);
             }
 
             return res;

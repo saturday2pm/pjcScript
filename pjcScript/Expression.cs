@@ -8,427 +8,429 @@ using System.Text.RegularExpressions;
 
 namespace pjcScript
 {
-	public abstract class Expression
-	{
-		public abstract object Exec(Dictionary<string, object> table);
+    public interface ExpressionNode
+    {
+        object Visit(Dictionary<string, object> table);
+    }
+    public class ExpressionBuilder
+    {
+        public static ExpressionNode Create(List<string> tokens)
+        {
+            List<ExpressionNode> expressions = new List<ExpressionNode>();
 
-		public static Expression Create(List<string> tokens)
-		{
-			List<Expression> expressions = new List<Expression>();
+            //expression 만들어놓고 연산자 따라 합침
+            for (int i = 0; i < tokens.Count; i++)
+            {
+                var token = tokens[i];
 
-			//expression 만들어놓고 연산자 따라 합침
-			for (int i = 0; i < tokens.Count; i++)
-			{
-				var token = tokens[i];
+                switch (token)
+                {
+                    case "+":
+                    case "-":
+                    case "*":
+                    case "/":
+                    case "%":
+                    case "=":
+                    case "?":
+                        expressions.Add(new BinaryOperatorExpression(token));
+                        break;
+                    case "(":
+                        //괄호 닫는 부분까지 하나의 Expression으로 만든다.
+                        int parenCount = 1;
+                        var parenToken = new List<string>();
+                        for (int j = i + 1; j < tokens.Count; j++)
+                        {
+                            if (tokens[j] == "(")
+                            {
+                                parenCount++;
+                            }
+                            else if (tokens[j] == ")")
+                            {
+                                parenCount--;
+                            }
 
-				switch (token)
-				{
-					case "+":
-					case "-":
-					case "*":
-					case "/":
-					case "%":
-					case "=":
-					case "?":
-						expressions.Add(new BinaryOperatorExpression(token));
-						break;
-					case "(":
-						//괄호 닫는 부분까지 하나의 Expression으로 만든다.
-						int parenCount = 1;
-						var parenToken = new List<string>();
-						for (int j = i + 1; j < tokens.Count; j++)
-						{
-							if (tokens[j] == "(")
-							{
-								parenCount++;
-							}
-							else if (tokens[j] == ")")
-							{
-								parenCount--;
-							}
+                            if (parenCount == 0)
+                            {
+                                i = j;
+                                expressions.Add(Create(parenToken));
+                                break;
+                            }
 
-							if (parenCount == 0)
-							{
-								i = j;
-								expressions.Add(Create(parenToken));
-								break;
-							}
+                            parenToken.Add(tokens[j]);
+                        }
+                        break;
+                    case ")":
+                        break;
+                    default:
+                        if (i == tokens.Count - 1 || tokens[i + 1] != "(")
+                        {
+                            expressions.Add(new ReferenceExpression(token)); //변수 상수
+                        }
+                        else
+                        {
+                            //함수
+                            var paramList = new List<List<string>>();
 
-							parenToken.Add(tokens[j]);
-						}
-						break;
-					case ")":
-						break;
-					default:
-						if (i == tokens.Count - 1 || tokens[i + 1] != "(")
-						{
-							expressions.Add(new ReferenceExpression(token)); //변수 상수
-						}
-						else
-						{
-							//함수
-							var paramList = new List<List<string>>();
+                            int now = i + 2;
+                            int pc = 1;
 
-							int now = i + 2;
-							int pc = 1;
+                            while (now < tokens.Count && pc > 0)
+                            {
+                                var param = new List<string>();
+                                while (now < tokens.Count)
+                                {
+                                    if (tokens[now] == "(")
+                                    {
+                                        pc++;
+                                    }
 
-							while (now < tokens.Count && pc > 0)
-							{
-								var param = new List<string>();
-								while (now < tokens.Count)
-								{
-									if (tokens[now] == "(")
-									{
-										pc++;
-									}
+                                    if (tokens[now] == ")")
+                                    {
+                                        if (pc == 1)
+                                            break;
 
-									if (tokens[now] == ")")
-									{
-										if (pc == 1)
-											break;
+                                        pc--;
+                                    }
 
-										pc--;	
-									}
+                                    if (tokens[now] == "," && pc == 1)
+                                    {
+                                        break;
+                                    }
 
-									if (tokens[now] == "," && pc == 1)
-									{
-										break;
-									}
+                                    param.Add(tokens[now]);
+                                    now++;
+                                }
+                                paramList.Add(param);
 
-									param.Add(tokens[now]);
-									now++;
-								}
-								paramList.Add(param);
+                                if (tokens[now] == ")")
+                                    break;
 
-								if (tokens[now] == ")")
-									break;
+                                now++;
 
-								now++;
-								
-							}
+                            }
 
-							expressions.Add(new FunctionExpression(token, paramList));
-							i = now;
-						}
-						break;
-				}
-			}
+                            expressions.Add(new FunctionExpression(token, paramList));
+                            i = now;
+                        }
+                        break;
+                }
+            }
 
-			//만들어놓은 expressions를 하나로 합친다.
-			//우선 중위식을 후위식으로 변환
-			var postexp = new List<Expression>();
-			var stack = new Stack<BinaryOperatorExpression>();
+            //만들어놓은 expressions를 하나로 합친다.
+            //우선 중위식을 후위식으로 변환
+            var postexp = new List<ExpressionNode>();
+            var stack = new Stack<BinaryOperatorExpression>();
 
-			foreach (var e in expressions)
-			{
-				var op = e as BinaryOperatorExpression;
+            foreach (var e in expressions)
+            {
+                var op = e as BinaryOperatorExpression;
 
-				if (op != null && !op.HasOperand())
-				{
-					while (stack.Count != 0 &&
-						stack.Peek().Priority > op.Priority)
-					{
-						postexp.Add(stack.Pop());
-					}
+                if (op != null && !op.HasOperand())
+                {
+                    while (stack.Count != 0 &&
+                        stack.Peek().Priority > op.Priority)
+                    {
+                        postexp.Add(stack.Pop());
+                    }
 
-					if (stack.Count != 0 &&
-						stack.Peek().Priority == op.Priority)
-					{
-						if (!op.IsLeft)
-						{
-							postexp.Add(stack.Pop());
-						}
-					}
+                    if (stack.Count != 0 &&
+                        stack.Peek().Priority == op.Priority)
+                    {
+                        if (!op.IsLeft)
+                        {
+                            postexp.Add(stack.Pop());
+                        }
+                    }
 
-					stack.Push(op);
-				}
-				else
-				{
-					//피 연산자는 바로 넣기
-					postexp.Add(e);
-				}
-			}
+                    stack.Push(op);
+                }
+                else
+                {
+                    //피 연산자는 바로 넣기
+                    postexp.Add(e);
+                }
+            }
 
-			while (stack.Count > 0)
-			{
-				postexp.Add(stack.Pop());
-			}
+            while (stack.Count > 0)
+            {
+                postexp.Add(stack.Pop());
+            }
 
-			var expressionStack = new Stack<Expression>();
+            var expressionStack = new Stack<ExpressionNode>();
 
-			for (int i = 0; i < postexp.Count; i++)
-			{
-				var e = postexp[i];
-				var op = e as BinaryOperatorExpression;
+            for (int i = 0; i < postexp.Count; i++)
+            {
+                var e = postexp[i];
+                var op = e as BinaryOperatorExpression;
 
-				//operand가 이미 설정되어 있는 경우(괄호) 제외하기
-				if (op != null && !op.HasOperand())
-				{
-					//연산자면 operand 설정후 다시 푸쉬
-					var right = expressionStack.Pop();
-					var left = expressionStack.Pop();
+                //operand가 이미 설정되어 있는 경우(괄호) 제외하기
+                if (op != null && !op.HasOperand())
+                {
+                    //연산자면 operand 설정후 다시 푸쉬
+                    var right = expressionStack.Pop();
+                    var left = expressionStack.Pop();
 
-					op.SetOperand(left, right);
-					expressionStack.Push(op);
-				}
-				else
-				{
-					expressionStack.Push(e);
-				}
-			}
+                    op.SetOperand(left, right);
+                    expressionStack.Push(op);
+                }
+                else
+                {
+                    expressionStack.Push(e);
+                }
+            }
 
-			return expressionStack.Peek();
-		}
-	}
+            return expressionStack.Peek();
+        }
+    }
 
-	class ReferenceExpression : Expression
-	{
+    class ReferenceExpression : ExpressionNode
+    {
 
-		public string Name
-		{
-			get { return var; }
-		}
+        public string Name
+        {
+            get { return var; }
+        }
 
-		public ReferenceExpression(string v)
-		{
-			var = v;
-		}
+        public ReferenceExpression(string v)
+        {
+            var = v;
+        }
 
-		public override object Exec(Dictionary<string, object> table)
-		{
-			int intRes;
-			float floatRes;
-			
-			if (var.StartsWith("\"") && var.EndsWith("\""))
-                		return var.Substring(1, var.Length - 2);
-		
-			if (int.TryParse(var, out intRes))
-			{
-				return intRes;
-			}
+        public object Visit(Dictionary<string, object> table)
+        {
+            int intRes;
+            float floatRes;
 
-			if (float.TryParse(var, out floatRes))
-			{
-				return floatRes;
-			}
+            if (var.StartsWith("\"") && var.EndsWith("\""))
+                return var.Substring(1, var.Length - 2);
 
-			if (table.ContainsKey(var))
-			{
-				return table[var];
-			}
+            if (int.TryParse(var, out intRes))
+            {
+                return intRes;
+            }
 
-			return null;
-		}
+            if (float.TryParse(var, out floatRes))
+            {
+                return floatRes;
+            }
 
-		string var = null;
-	}
+            if (table.ContainsKey(var))
+            {
+                return table[var];
+            }
 
-	class AssignmentExpression : Expression
-	{
-		public override object Exec(Dictionary<string, object> table)
-		{
-			var res = exp.Exec(table);
+            return null;
+        }
 
-			if (table.ContainsKey(var))
-			{
-				table[var] = res;
-			}
-			else
-			{
-				table.Add(var, res);
-			}
+        string var = null;
+    }
 
-			return res;
-		}
+    class AssignmentExpression : ExpressionNode
+    {
+        public object Visit(Dictionary<string, object> table)
+        {
+            var res = exp.Visit(table);
 
-		string var = null;
-		Expression exp = null;
-	}
+            if (table.ContainsKey(var))
+            {
+                table[var] = res;
+            }
+            else
+            {
+                table.Add(var, res);
+            }
 
-	class BinaryOperatorExpression : Expression
-	{
-		public int Priority
-		{
-			get { return priority; }
-		}
+            return res;
+        }
 
-		public bool IsLeft
-		{
-			get { return isLeft; }
-		}
+        string var = null;
+        ExpressionNode exp = null;
+    }
 
-		public delegate object Op(Expression lhs, Expression rhs, Dictionary<string, object> table);
-		Op op = null;
-		Expression lhs = null;
-		Expression rhs = null;
-		int priority = 0;
-		bool isLeft = true;
+    class BinaryOperatorExpression : ExpressionNode
+    {
+        public int Priority
+        {
+            get { return priority; }
+        }
 
-		public BinaryOperatorExpression(string s)
-		{
-			switch (s)
-			{
-				case "=":
-					priority = 0;
-					isLeft = false;
-					break;
-				case "*":
-				case "/":
-				case "%":
-					priority = 3;
-					isLeft = true;
-					break;
-				case "+":
-				case "-":
-					priority = 2;
-					isLeft = true;
-					break;
-				case "?":
-					priority = 1;
-					isLeft = true;
-					break;
-			}
+        public bool IsLeft
+        {
+            get { return isLeft; }
+        }
 
-			switch (s)
-			{
-				case "=":
-					op = Assign();
-					break;
-				case "*":
-					op = Binary("op_Multiply");
-					break;
-				case "/":
-					op = Binary("op_Division");
-					break;
-				case "%":
-					op = Binary("op_Modulus");
-					break;
-				case "+":
-					op = Binary("op_Addition");
-					break;
-				case "-":
-					op = Binary("op_Subtraction");
-					break;
-				case "?":
-					op = Nullable();
-					break;
-			}
-		}
+        public delegate object Op(ExpressionNode lhs, ExpressionNode rhs, Dictionary<string, object> table);
+        Op op = null;
+        ExpressionNode lhs = null;
+        ExpressionNode rhs = null;
+        int priority = 0;
+        bool isLeft = true;
 
-		public bool HasOperand()
-		{
-			return lhs != null && rhs != null;
-		}
+        public BinaryOperatorExpression(string s)
+        {
+            switch (s)
+            {
+                case "=":
+                    priority = 0;
+                    isLeft = false;
+                    break;
+                case "*":
+                case "/":
+                case "%":
+                    priority = 3;
+                    isLeft = true;
+                    break;
+                case "+":
+                case "-":
+                    priority = 2;
+                    isLeft = true;
+                    break;
+                case "?":
+                    priority = 1;
+                    isLeft = true;
+                    break;
+            }
 
-		public void SetOperand(Expression left, Expression right)
-		{
-			lhs = left;
-			rhs = right;
-		}
+            switch (s)
+            {
+                case "=":
+                    op = Assign();
+                    break;
+                case "*":
+                    op = Binary("op_Multiply");
+                    break;
+                case "/":
+                    op = Binary("op_Division");
+                    break;
+                case "%":
+                    op = Binary("op_Modulus");
+                    break;
+                case "+":
+                    op = Binary("op_Addition");
+                    break;
+                case "-":
+                    op = Binary("op_Subtraction");
+                    break;
+                case "?":
+                    op = Nullable();
+                    break;
+            }
+        }
 
-		public override object Exec(Dictionary<string, object> table)
-		{
-			return op(lhs, rhs, table);
-		}
+        public bool HasOperand()
+        {
+            return lhs != null && rhs != null;
+        }
 
-		Op Nullable()
-		{
-			return (lhs, rhs, table) =>
-			{
-				var l = lhs.Exec(table);
+        public void SetOperand(ExpressionNode left, ExpressionNode right)
+        {
+            lhs = left;
+            rhs = right;
+        }
 
-				if (l == null)
-					return rhs.Exec(table);
-				else
-					return l;
-			};
-		}
+        public object Visit(Dictionary<string, object> table)
+        {
+            return op(lhs, rhs, table);
+        }
 
-		Op Assign()
-		{
-			return (lhs, rhs, table) =>
-			{
-				var obj = lhs as ReferenceExpression;
-				var res = rhs.Exec(table);
+        Op Nullable()
+        {
+            return (lhs, rhs, table) =>
+            {
+                var l = lhs.Visit(table);
 
-                		table[obj.Name] = res;
-                
-				return res;
-			};
-		}
+                if (l == null)
+                    return rhs.Visit(table);
+                else
+                    return l;
+            };
+        }
 
-		Op Binary(string name)
-		{
-			return (lhs, rhs, table) =>
-			{
-				var l = lhs.Exec(table);
-				var r = rhs.Exec(table);
+        Op Assign()
+        {
+            return (lhs, rhs, table) =>
+            {
+                var obj = lhs as ReferenceExpression;
+                var res = rhs.Visit(table);
 
-				if (l is string)
-				{
-				    switch (name)
-				    {
-					case "op_Addition":
-					    return (string)l + r.ToString();
-				    }
-				}
+                table[obj.Name] = res;
 
-				if (l is int)
-				{
-					switch (name)
-					{
-						case "op_Multiply":
-							return (int)l * Convert.ToInt32(r);
-						case "op_Division":
-							return (int)l / Convert.ToInt32(r);
-                     				case "op_Modulus":
-							return (int)l % Convert.ToInt32(r);
-                    				case "op_Addition":
-							return (int)l + Convert.ToInt32(r);
-                      				case "op_Subtraction":
-							return (int)l - Convert.ToInt32(r);
-                    			}
-				}
+                return res;
+            };
+        }
 
-				if (l is float)
-				{
-					switch (name)
-					{
-						case "op_Multiply":
-                            				return (float)l * Convert.ToSingle(r);
-						case "op_Division":
-							return (float)l / Convert.ToSingle(r);
-                        			case "op_Modulus":
-							return (float)l % Convert.ToSingle(r);
-                        			case "op_Addition":
-							return (float)l + Convert.ToSingle(r);
-                        			case "op_Subtraction":
-							return (float)l - Convert.ToSingle(r);
-                    			}
-				}
+        Op Binary(string name)
+        {
+            return (lhs, rhs, table) =>
+            {
+                var l = lhs.Visit(table);
+                var r = rhs.Visit(table);
 
-				return l.GetType().GetMethod(name, BindingFlags.Static | BindingFlags.Public).Invoke(null, new object[] { l, r });
-			};
-		}
-	}
+                if (l is string)
+                {
+                    switch (name)
+                    {
+                        case "op_Addition":
+                            return (string)l + r.ToString();
+                    }
+                }
 
-	class FunctionExpression : Expression
-	{
-		public FunctionExpression(string name, List<List<string>> paramList)
-		{
-			func = name;
+                if (l is int)
+                {
+                    switch (name)
+                    {
+                        case "op_Multiply":
+                            return (int)l * Convert.ToInt32(r);
+                        case "op_Division":
+                            return (int)l / Convert.ToInt32(r);
+                        case "op_Modulus":
+                            return (int)l % Convert.ToInt32(r);
+                        case "op_Addition":
+                            return (int)l + Convert.ToInt32(r);
+                        case "op_Subtraction":
+                            return (int)l - Convert.ToInt32(r);
+                    }
+                }
 
-			param = paramList.Select(p => Create(p)).ToList();
-		}
+                if (l is float)
+                {
+                    switch (name)
+                    {
+                        case "op_Multiply":
+                            return (float)l * Convert.ToSingle(r);
+                        case "op_Division":
+                            return (float)l / Convert.ToSingle(r);
+                        case "op_Modulus":
+                            return (float)l % Convert.ToSingle(r);
+                        case "op_Addition":
+                            return (float)l + Convert.ToSingle(r);
+                        case "op_Subtraction":
+                            return (float)l - Convert.ToSingle(r);
+                    }
+                }
 
-		List<Expression> param;
-		string func;
+                return l.GetType().GetMethod(name, BindingFlags.Static | BindingFlags.Public).Invoke(null, new object[] { l, r });
+            };
+        }
+    }
 
-		public override object Exec(Dictionary<string, object> table)
-		{
-			var p = param.Select(e => e.Exec(table)).ToArray();
+    class FunctionExpression : ExpressionNode
+    {
+        public FunctionExpression(string name, List<List<string>> paramList)
+        {
+            func = name;
 
-			return table[func].GetType().GetMethod("Invoke").Invoke(table[func], p);
-		}
-	}
+            param = paramList.Select(p => ExpressionBuilder.Create(p)).ToList();
+        }
+
+        List<ExpressionNode> param;
+        string func;
+
+        public object Visit(Dictionary<string, object> table)
+        {
+            var p = param.Select(e => e.Visit(table)).ToArray();
+
+            return table[func].GetType().GetMethod("Invoke").Invoke(table[func], p);
+        }
+    }
 }
