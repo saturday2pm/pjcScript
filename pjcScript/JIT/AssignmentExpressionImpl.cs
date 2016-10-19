@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace pjcScript.Instant
+namespace pjcScript.JIT
 {
     class AssignmentExpressionImpl : AssignmentExpression
     {
@@ -15,7 +15,7 @@ namespace pjcScript.Instant
 
         public override object Visit(ExecContext ctx, Dictionary<string, object> table)
         {
-            var res = exp.Visit(ctx, table);
+            var res = exp.Visit(table);
 
             if (table.ContainsKey(var))
             {
