@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace pjcScript
 {
 	//Expression Builder가 만든 표현식 실행해서 결과 돌려줌
-	class Interpreter
+	public class Interpreter
 	{
 
 		//외부 값을 이름으로 내부 스크립트에 바인딩함(기존 바인딩 날아감)
@@ -53,24 +53,24 @@ namespace pjcScript
 		{
 		    table = new Dictionary<string, object>(external);
 
-		    return exp.Exec(table);
-		}
+            return exp.Exec(external);
+        }
 
-       		object Exec(List<Expression> expressions)
-		{
-            		table = new Dictionary<string, object>(external);
+        object Exec(List<Expression> expressions)
+        {
+            table = new Dictionary<string, object>(external);
 
-			object res = null;
+            object res = null;
 
-			foreach (var e in expressions)
-			{
-				res = e.Exec(table);
-			}
+            foreach (var e in expressions)
+            {
+                res = e.Exec(external);
+            }
 
-			return res;
-		}
+            return res;
+        }
 
-		Dictionary<string, object> table = new Dictionary<string, object>();
-		Dictionary<string, object> external = new Dictionary<string, object>();
+        Dictionary<string, object> table = new Dictionary<string, object>();
+        Dictionary<string, object> external = new Dictionary<string, object>();
 	}
 }

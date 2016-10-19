@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 
 namespace pjcScript
 {
-	abstract class Expression
+	public abstract class Expression
 	{
 		public abstract object Exec(Dictionary<string, object> table);
 

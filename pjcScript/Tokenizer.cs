@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace pjcScript
@@ -53,13 +54,13 @@ namespace pjcScript
 
 			return tokens.Select(x => x.Trim()).ToList();
 		}
-		
-		public List<string> GetIdents(string str)
-        	{
-            		var regex = new Regex("[a-zA-Z_]+");
-            
-            		// 임시 구현
-            		return tokenize(str).Where(x => regex.IsMatch(x)).ToList();
-        	}
-	}
+
+        public List<string> GetIdents(string str)
+        {
+            var regex = new Regex("[a-zA-Z_]+");
+
+            // 임시 구현
+            return tokenize(str).Where(x => regex.IsMatch(x)).ToList();
+        }
+    }
 }
